@@ -150,7 +150,7 @@ export class AccountDetailsComponent implements OnInit {
     }
     
     if (!this.userDetails.phone || !this.isValidPhone(this.userDetails.phone)) {
-      this.fieldErrors['phone'] = 'Please enter a valid phone number (e.g., 0833866364)';
+      this.fieldErrors['phone'] = 'Please enter a valid phone number (e.g., 0830000000)';
     }
   }
 
@@ -161,7 +161,7 @@ export class AccountDetailsComponent implements OnInit {
 
   isValidPhone(phone: string): boolean {
     // Allow Irish mobile numbers starting with 08 followed by 8 digits
-    // Format: 08XXXXXXXX (e.g., 0833866364)
+    // Format: 08XXXXXXXX (e.g., 0830000000)
     const phoneRegex = /^08[0-9]\d{7}$/;
     return phoneRegex.test(phone);
   }

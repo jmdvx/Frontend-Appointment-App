@@ -236,7 +236,7 @@ export class RegisterComponent implements OnInit {
       if (phoneControl.errors['required']) {
         this.errorMessage = 'Phone number is required';
       } else if (phoneControl.errors['pattern']) {
-        this.errorMessage = 'Please enter a valid Irish mobile number (e.g., 0833866364)';
+        this.errorMessage = 'Please enter a valid Irish mobile number (e.g., 0830000000)';
       }
     } else if (passwordControl?.errors && passwordControl.touched) {
       if (passwordControl.errors['required']) {
@@ -270,7 +270,7 @@ export class RegisterComponent implements OnInit {
       if (field.errors['required']) return `${fieldName} is required`;
       if (field.errors['email']) return 'Please enter a valid email';
       if (field.errors['minlength']) return `${fieldName} must be at least ${field.errors['minlength'].requiredLength} characters`;
-      if (field.errors['pattern']) return 'Please enter a valid Irish mobile number (e.g., 0833866364)';
+      if (field.errors['pattern']) return 'Please enter a valid Irish mobile number (e.g., 0830000000)';
       if (field.errors['passwordMismatch']) return 'Passwords do not match';
       if (field.errors['passwordComplexity']) {
         const complexity = field.errors['passwordComplexity'];

@@ -117,7 +117,7 @@
     </div>
     <div class="row">
       <label>Phone Number <span class="required">*</span></label>
-      <input type="tel" formControlName="phone" [class.error]="form.get('phone')?.invalid && form.get('phone')?.touched" placeholder="0833866364" />
+      <input type="tel" formControlName="phone" [class.error]="form.get('phone')?.invalid && form.get('phone')?.touched" placeholder="0830000000" />
       <div *ngIf="getFieldError('phone')" class="field-error">
         {{ getFieldError('phone') }}
       </div>
@@ -128,6 +128,7 @@
         formControlName="description" 
         placeholder="Describe your nail preferences, colors, designs, or any special requests..."
         rows="3"
+        (input)="validateDescription()"
         [class.error]="form.get('description')?.invalid && form.get('description')?.touched">
       </textarea>
       <div *ngIf="getFieldError('description')" class="field-error">

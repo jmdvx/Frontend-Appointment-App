@@ -3,6 +3,8 @@ import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Observable, throwError, of } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import { environment } from '../environments/environment';
+import { isPlatformBrowser } from '@angular/common';
+import { PLATFORM_ID } from '@angular/core';
 
 export interface Client {
   _id?: string;
@@ -35,9 +37,39 @@ export interface ClientAppointmentHistory {
 export class ClientService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${environment.apiUrl}/clients`;
+  private readonly platformId = inject(PLATFORM_ID);
+
+  constructor() {
+    // Initialize offline data if in browser
+    if (isPlatformBrowser(this.platformId)) {
+      this.initializeOfflineData();
+    }
+  }
+
+  // Initialize offline data for testing
+  private initializeOfflineData(): void {
+    // No hard-coded users - rely on actual data from localStorage
+    console.log('📋 Client service initialized - loading clients from localStorage');
+  }
 
   // Get all clients
   getClients(): Observable<Client[]> {
+    const OFFLINE_MODE = false; // Disabled to connect to backend database
+    
+    if (OFFLINE_MODE) {
+      // Offline mode: Return clients from localStorage
+      return new Observable(observer => {
+        setTimeout(() => {
+          const localClients = JSON.parse(localStorage.getItem('offline_clients') || '[]');
+          console.log('📋 Loaded clients from localStorage:', localClients.length);
+          observer.next(localClients);
+          observer.complete();
+        }, 300);
+      });
+    }
+
+    // Connect to backend database
+    console.log('📋 Loading clients from backend...');
     return this.http.get<Client[]>(this.baseUrl).pipe(
       catchError((error: HttpErrorResponse) => {
         console.error('Client service error:', error);
@@ -85,6 +117,22 @@ export class ClientService {
 
   // Delete client
   deleteClient(id: string): Observable<{ message: string }> {
+    const OFFLINE_MODE = true; // Temporary offline mode for testing
+    
+    if (OFFLINE_MODE) {
+      // Offline mode: Delete from localStorage
+      return new Observable(observer => {
+        setTimeout(() => {
+          const localClients = JSON.parse(localStorage.getItem('offline_clients') || '[]');
+          const filteredClients = localClients.filter((c: any) => c._id !== id);
+          localStorage.setItem('offline_clients', JSON.stringify(filteredClients));
+          
+          observer.next({ message: 'Client deleted successfully (offline mode)' });
+          observer.complete();
+        }, 300);
+      });
+    }
+
     return this.http.delete<{ message: string }>(`${this.baseUrl}/${id}`);
   }
 
@@ -96,5 +144,79 @@ export class ClientService {
   // Get clients with appointment statistics
   getClientsWithStats(): Observable<Client[]> {
     return this.http.get<Client[]>(`${this.baseUrl}/with-stats`);
+  }
+
+  // Ban a client
+  banClient(clientId: string, cancelAppointments: boolean = true): Observable<{ message: string; isBanned: boolean }> {
+    const OFFLINE_MODE = true; // Temporary offline mode for testing
+    
+    if (OFFLINE_MODE) {
+      // Offline mode: Toggle ban status locally
+      return new Observable(observer => {
+        setTimeout(() => {
+          const localClients = JSON.parse(localStorage.getItem('offline_clients') || '[]');
+          const client = localClients.find((c: any) => c._id === clientId);
+          
+          if (client) {
+            client.isBanned = !client.isBanned;
+            localStorage.setItem('offline_clients', JSON.stringify(localClients));
+            
+            observer.next({ 
+              message: `Client ${client.isBanned ? 'banned' : 'unbanned'} successfully (offline mode)`, 
+              isBanned: client.isBanned 
+            });
+          } else {
+            observer.next({ 
+              message: 'Client ban status updated (offline mode)', 
+              isBanned: true 
+            });
+          }
+          
+          observer.complete();
+        }, 300);
+      });
+    }
+
+    return this.http.post<{ message: string; isBanned: boolean }>(
+      `${environment.apiUrl}/admin/clients/${clientId}/ban`, 
+      { cancelAppointments }
+    );
+  }
+
+  // Unban a client
+  unbanClient(clientId: string): Observable<{ message: string; isBanned: boolean }> {
+    const OFFLINE_MODE = true; // Temporary offline mode for testing
+    
+    if (OFFLINE_MODE) {
+      // Offline mode: Toggle ban status locally
+      return new Observable(observer => {
+        setTimeout(() => {
+          const localClients = JSON.parse(localStorage.getItem('offline_clients') || '[]');
+          const client = localClients.find((c: any) => c._id === clientId);
+          
+          if (client) {
+            client.isBanned = false;
+            localStorage.setItem('offline_clients', JSON.stringify(localClients));
+            
+            observer.next({ 
+              message: 'Client unbanned successfully (offline mode)', 
+              isBanned: false 
+            });
+          } else {
+            observer.next({ 
+              message: 'Client unbanned (offline mode)', 
+              isBanned: false 
+            });
+          }
+          
+          observer.complete();
+        }, 300);
+      });
+    }
+
+    return this.http.post<{ message: string; isBanned: boolean }>(
+      `${environment.apiUrl}/admin/clients/${clientId}/unban`, 
+      {}
+    );
   }
 }

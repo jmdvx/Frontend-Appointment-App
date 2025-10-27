@@ -362,23 +362,24 @@ export class BookAppointmentComponent implements OnInit {
     
     // Get service duration in minutes (default to 60 minutes if no service selected)
     const serviceDurationMinutes = this.selectedService?.duration || 60;
-    const serviceDurationHours = serviceDurationMinutes / 60;
     console.log('Service duration (minutes):', serviceDurationMinutes);
-    console.log('Service duration (hours):', serviceDurationHours);
     console.log('Selected service:', this.selectedService);
-    // Generate time slots from 11 AM to 6 PM based on service duration in minutes
+    
+    // Generate time slots from 11 AM to 6 PM
     // Start at 11:00 AM (660 minutes from midnight)
     // End at 6:00 PM (1080 minutes from midnight)
     const startMinutes = 11 * 60; // 11:00 AM = 660 minutes
     const endMinutes = 18 * 60;   // 6:00 PM = 1080 minutes
     
-    for (let minutes = startMinutes; minutes <= endMinutes; minutes += serviceDurationMinutes) {
+    // Generate slots at 15-minute intervals (this provides maximum flexibility)
+    // For 30, 45, 60, 90, 120 minute services
+    for (let minutes = startMinutes; minutes <= endMinutes; minutes += 15) {
       const timeSlot = new Date(selectedDate);
       const hours = Math.floor(minutes / 60);
       const mins = minutes % 60;
       timeSlot.setHours(hours, mins, 0, 0);
       times.push(timeSlot.toISOString());
-      console.log('Added time slot:', timeSlot.toLocaleTimeString(), 'Minutes:', minutes);
+      console.log('Added base time slot:', timeSlot.toLocaleTimeString(), 'Minutes:', minutes);
     }
     
     // Filter out already booked times
@@ -455,15 +456,46 @@ export class BookAppointmentComponent implements OnInit {
     const dayEnd = new Date(selectedDate);
     dayEnd.setHours(23, 59, 59, 999);
 
+    // Get service duration for filtering
+    const serviceDurationMinutes = this.selectedService?.duration || 60;
+    console.log('🔍 Filtering times for service duration:', serviceDurationMinutes, 'minutes');
+
     // Get appointments for the selected day
     const dayAppointments = this.existingAppointments.filter(appointment => {
       const appointmentDate = new Date(appointment.date);
       return appointmentDate >= dayStart && appointmentDate <= dayEnd;
     });
+    
+    console.log('🔍 Existing appointments for this day:', dayAppointments.length);
+    dayAppointments.forEach(apt => {
+      console.log('🔍 Existing appointment:', {
+        start: new Date(apt.date).toLocaleTimeString(),
+        duration: apt.description?.match(/Duration:\s*(\d+)/i)?.[1] || '60'
+      });
+    });
 
-    // Filter out times that are already booked
+    // Filter out times that are already booked or would cause conflicts
     return allTimes.filter(timeSlot => {
       const slotTime = new Date(timeSlot);
+      
+      // Calculate the end time if we were to book at this slot
+      const slotEndTime = new Date(slotTime);
+      slotEndTime.setMinutes(slotEndTime.getMinutes() + serviceDurationMinutes);
+      
+      // Check if our booking would extend past business hours (6 PM)
+      // Business hours: 11:00 AM to 6:00 PM
+      const businessEndTime = new Date(slotEndTime);
+      businessEndTime.setHours(18, 0, 0, 0); // 6:00 PM
+      
+      // Reject any booking that ends after business hours (6:00 PM)
+      if (slotEndTime > businessEndTime) {
+        console.log('Slot extends past 6 PM:', {
+          slot: timeSlot,
+          endTime: slotEndTime.toLocaleTimeString(),
+          businessEnd: businessEndTime.toLocaleTimeString()
+        });
+        return false;
+      }
       
       // Check if this time slot conflicts with any existing appointment
       return !dayAppointments.some(appointment => {
@@ -485,13 +517,26 @@ export class BookAppointmentComponent implements OnInit {
         const appointmentEndTime = new Date(appointmentTime);
         appointmentEndTime.setMinutes(appointmentEndTime.getMinutes() + appointmentDurationMinutes);
         
-        // Check if the time slot falls within the appointment duration
-        const slotTimeMinutes = slotTime.getHours() * 60 + slotTime.getMinutes();
-        const appointmentStartMinutes = appointmentTime.getHours() * 60 + appointmentTime.getMinutes();
-        const appointmentEndMinutes = appointmentEndTime.getHours() * 60 + appointmentEndTime.getMinutes();
+        // Check for overlap between our new booking and existing appointment
+        // Our booking starts at slotTime and ends at slotEndTime
+        // Existing appointment starts at appointmentTime and ends at appointmentEndTime
+        // There's a conflict if they overlap at all
         
-        // Check if slot is within appointment time range
-        return slotTimeMinutes >= appointmentStartMinutes && slotTimeMinutes < appointmentEndMinutes;
+        const overlap = !(slotEndTime <= appointmentTime || slotTime >= appointmentEndTime);
+        
+        if (overlap) {
+          console.log('❌ Conflict detected for slot:', {
+            slot: timeSlot,
+            ourStart: slotTime.toLocaleTimeString(),
+            ourEnd: slotEndTime.toLocaleTimeString(),
+            existingStart: appointmentTime.toLocaleTimeString(),
+            existingEnd: appointmentEndTime.toLocaleTimeString(),
+            ourDuration: serviceDurationMinutes,
+            existingDuration: appointmentDurationMinutes
+          });
+        }
+        
+        return overlap;
       });
     });
   }
@@ -892,6 +937,9 @@ export class BookAppointmentComponent implements OnInit {
       if (control.errors['email']) {
         return 'Please enter a valid email address';
       }
+      if (control.errors['profanity']) {
+        return 'Please keep your preferences professional and appropriate';
+      }
       if (control.errors['pattern']) {
         if (fieldName === 'phone') {
           return 'Please enter a valid phone number';
@@ -912,6 +960,33 @@ export class BookAppointmentComponent implements OnInit {
       'description': 'Description'
     };
     return labels[fieldName] || fieldName;
+  }
+
+  // Profanity filter for nail preferences
+  private readonly profanityList = [
+    'bad', 'naughty', 'inappropriate' // Add your list of words here
+  ];
+
+  private containsProfanity(text: string): boolean {
+    if (!text) return false;
+    const lowerText = text.toLowerCase();
+    return this.profanityList.some(word => lowerText.includes(word.toLowerCase()));
+  }
+
+  validateDescription(): void {
+    const control = this.form.get('description');
+    const value = control?.value || '';
+    
+    if (this.containsProfanity(value)) {
+      control?.setErrors({ profanity: true });
+    } else if (control?.errors && control.errors['profanity']) {
+      delete control.errors['profanity'];
+      if (Object.keys(control.errors).length === 0) {
+        control.setErrors(null);
+      } else {
+        control.setErrors(control.errors);
+      }
+    }
   }
 }
 

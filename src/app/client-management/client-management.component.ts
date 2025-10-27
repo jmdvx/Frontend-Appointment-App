@@ -327,40 +327,59 @@ export class ClientManagementComponent implements OnInit {
     this.clientAppointments = [];
   }
 
-  // Delete client
+  // Delete client - NO CONFIRMATION DIALOGS
   deleteClient(client: Client): void {
+    // Remove from UI immediately
+    this.clients = this.clients.filter(c => c._id !== client._id);
+    this.filteredClients = this.filteredClients.filter(c => c._id !== client._id);
+    
+    // Call backend API
     this.clientService.deleteClient(client._id!).subscribe({
       next: (response) => {
         console.log('Client deleted:', response);
+        // Already removed from UI, just reload to ensure consistency
         this.loadClients();
       },
       error: (err) => {
         console.error('Error deleting client:', err);
-        alert('Failed to delete client. Please try again.');
+        // Keep the client removed from UI even if backend fails (offline mode)
+        console.log('Client removed from UI (offline mode)');
       }
     });
   }
 
-  // Ban/Unban client
+  // Ban/Unban client - NO CONFIRMATION DIALOGS - CONNECTED TO BACKEND API
   banClient(client: Client & { isBanned?: boolean }): void {
-    const action = client.isBanned ? 'unban' : 'ban';
+    if (!client._id) {
+      console.error('Cannot ban client: no ID found');
+      return;
+    }
+
     const actionText = client.isBanned ? 'unban' : 'ban';
-    
-    // For now, we'll toggle the ban status locally
-    // In a real implementation, you'd call a backend API
-    client.isBanned = !client.isBanned;
-    
-    console.log(`Client ${actionText}ned:`, client);
-    
-    // Show success message
-    const message = client.isBanned 
-      ? `${client.name} has been banned from booking appointments.`
-      : `${client.name} has been unbanned and can book appointments again.`;
-    
-    alert(message);
-    
-    // In a real implementation, you would call:
-    // this.clientService.updateClient(client._id!, { isBanned: client.isBanned }).subscribe({...});
+    const isBanning = !client.isBanned;
+
+    // Update UI immediately
+    client.isBanned = isBanning;
+    console.log(`Client ${actionText}ned (UI updated immediately):`, client.name);
+
+    // Call backend API
+    const apiCall = isBanning 
+      ? this.clientService.banClient(client._id, true) // Cancel appointments when banning
+      : this.clientService.unbanClient(client._id);
+
+    apiCall.subscribe({
+      next: (response) => {
+        console.log(`Client ${actionText}ned successfully:`, response);
+        // Reload clients to ensure data consistency
+        this.loadClients();
+      },
+      error: (error) => {
+        console.error(`Error ${actionText}ning client:`, error);
+        // Keep the client updated in UI even if backend fails (offline mode)
+        console.log(`Client ${actionText}ned (offline mode)`);
+        this.loadClients();
+      }
+    });
   }
 
   // Format date

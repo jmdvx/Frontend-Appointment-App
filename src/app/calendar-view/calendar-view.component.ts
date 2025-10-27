@@ -605,9 +605,9 @@ export class CalendarViewComponent implements OnInit {
     });
   }
 
-  // Check if day can be clicked (not past dates)
+  // Check if day can be clicked - allow ALL dates (past, present, future)
   canInteractWithDay(day: CalendarDay): boolean {
-    return !day.isPast;
+    return true; // Allow interaction with any date, past or future
   }
 
   // Walk-in booking methods
@@ -633,11 +633,17 @@ export class CalendarViewComponent implements OnInit {
   }
 
   initializeAvailableTimes(): void {
+    // Generate 15-minute slots from 11 AM to 6 PM (18:00)
+    // This allows for 30, 45, 60, 90, 120 minute slots
     const times = [];
-    for (let hour = 9; hour <= 17; hour++) {
+    for (let hour = 11; hour < 18; hour++) {
       times.push(`${hour.toString().padStart(2, '0')}:00`);
+      times.push(`${hour.toString().padStart(2, '0')}:15`);
+      times.push(`${hour.toString().padStart(2, '0')}:30`);
+      times.push(`${hour.toString().padStart(2, '0')}:45`);
     }
     this.availableTimes = times;
+    console.log('Available time slots initialized:', this.availableTimes);
   }
 
   initializeAvailableServices(): void {
@@ -678,7 +684,7 @@ export class CalendarViewComponent implements OnInit {
         return 'Please enter a valid email address';
       }
       if (field.errors?.['pattern']) {
-        return 'Please enter a valid phone number (e.g., 0833866364)';
+        return 'Please enter a valid phone number (e.g., 0830000000)';
       }
       if (field.errors?.['minlength']) {
         return `${this.getFieldLabel(fieldName)} must be at least ${field.errors['minlength'].requiredLength} characters`;
@@ -827,7 +833,7 @@ export class CalendarViewComponent implements OnInit {
     return hasSlots;
   }
 
-  // Get booked time slots for a specific date
+  // Get booked time slots for a specific date (handles any duration)
   getBookedTimeSlots(date: string): string[] {
     const targetDate = new Date(date);
     const bookedSlots: string[] = [];
@@ -837,8 +843,33 @@ export class CalendarViewComponent implements OnInit {
       
       // Check if appointment is on the same date
       if (appointmentDate.toDateString() === targetDate.toDateString()) {
-        const timeSlot = appointmentDate.toTimeString().split(' ')[0].substring(0, 5); // HH:MM format
-        bookedSlots.push(timeSlot);
+        // Get the appointment duration from the description
+        let appointmentDurationMinutes = 60; // Default to 1 hour
+        
+        // Try to extract duration from appointment description
+        const description = appointment.description || '';
+        const durationMatch = description.match(/Duration:\s*(\d+)\s*minutes?/i);
+        
+        if (durationMatch) {
+          appointmentDurationMinutes = parseInt(durationMatch[1]) || 60;
+        }
+        
+        // Get appointment start time
+        const startMinute = appointmentDate.getMinutes();
+        
+        // Mark all time slots during the appointment duration as booked
+        const slotsToMark = Math.ceil(appointmentDurationMinutes / 15); // Each slot is 15 mins
+        
+        for (let i = 0; i < slotsToMark; i++) {
+          const slotDate = new Date(appointmentDate);
+          slotDate.setMinutes(startMinute + (i * 15));
+          const timeSlot = slotDate.toTimeString().split(' ')[0].substring(0, 5); // HH:MM format
+          
+          // Only add slots between 11 AM and 6 PM
+          if (slotDate.getHours() >= 11 && slotDate.getHours() < 18) {
+            bookedSlots.push(timeSlot);
+          }
+        }
       }
     });
     

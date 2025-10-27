@@ -356,6 +356,15 @@
   opacity: 0.7;
 }
 
+.unban-btn {
+  background: #16a34a;
+  color: white;
+}
+
+.unban-btn:hover {
+  background: #15803d;
+}
+
 /* Banned Client Styles */
 .banned-client {
   border-left: 4px solid #dc2626;

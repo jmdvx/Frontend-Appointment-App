@@ -177,8 +177,11 @@
             <button class="action-btn view-edit-btn" (click)="viewOrEditClient(client)">
               👁️✏️ View/Edit
             </button>
-            <button class="action-btn ban-btn" (click)="banClient(client)" [disabled]="client.isBanned">
-              {{ client.isBanned ? '🚫 Banned' : '🚫 Ban' }}
+            <button *ngIf="!client.isBanned" class="action-btn ban-btn" (click)="banClient(client)">
+              🚫 Ban
+            </button>
+            <button *ngIf="client.isBanned" class="action-btn unban-btn" (click)="banClient(client)">
+              ✅ Unban
             </button>
             <button class="action-btn delete-btn" (click)="deleteClient(client)">
               🗑️ Delete

@@ -336,6 +336,13 @@
 .calendar-day.past-day {
   background: #f3f4f6;
   color: #9ca3af;
+  cursor: pointer;
+  opacity: 0.9;
+}
+
+.calendar-day.past-day:hover {
+  background: #e5e7eb;
+  opacity: 1;
 }
 
 .calendar-day.has-appointments {
