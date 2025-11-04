@@ -11,6 +11,7 @@ import { ClientManagementComponent } from './client-management/client-management
 import { CalendarViewComponent } from './calendar-view/calendar-view.component';
 import { AccountDetailsComponent } from './account-details/account-details.component';
 import { AdminGuard } from './admin.guard';
+import { AdminUserManagementComponent } from './admin-user-management/admin-user-management.component';
 
 export const routes: Routes = [
   { path: '', component: HomeComponent },
@@ -21,6 +22,7 @@ export const routes: Routes = [
   { path: 'clients', component: ClientManagementComponent, canActivate: [AdminGuard] },
   { path: 'calendar', component: CalendarViewComponent, canActivate: [AdminGuard] },
   { path: 'account-details', component: AccountDetailsComponent },
+  { path: 'admin-users', component: AdminUserManagementComponent, canActivate: [AdminGuard] },
   { path: 'login', component: LoginComponent },
   { path: 'register', component: RegisterComponent },
   { path: 'reset-password', component: ResetPasswordComponent },

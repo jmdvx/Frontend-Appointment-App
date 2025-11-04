@@ -77,12 +77,25 @@ export class AuthService {
     if (token && userStr) {
       try {
         const user = JSON.parse(userStr);
-        this.setUser(user);
+        // Normalize user object to ensure 'id' field exists (convert _id to id)
+        const normalizedUser = this.normalizeUser(user);
+        this.setUser(normalizedUser);
       } catch (error) {
         console.error('Error parsing user:', error);
         this.clearAuth();
       }
     }
+  }
+
+  // Normalize user object to ensure consistent format (id instead of _id)
+  private normalizeUser(user: any): User {
+    return {
+      id: user._id || user.id,
+      email: user.email,
+      name: user.name,
+      phone: user.phonenumber || user.phone,
+      role: user.role || 'user'
+    };
   }
 
   login(credentials: LoginRequest): Observable<LoginResponse> {
@@ -175,10 +188,12 @@ export class AuthService {
         }
         
         // Save user data and token on successful login
-        this.setUser(loginResponse.user);
+        // Normalize user before storing (ensures id field exists)
+        const normalizedUser = this.normalizeUser(loginResponse.user);
+        this.setUser(normalizedUser);
         if (isPlatformBrowser(this.platformId)) {
           localStorage.setItem('auth_token', loginResponse.token);
-          localStorage.setItem('current_user', JSON.stringify(loginResponse.user));
+          localStorage.setItem('current_user', JSON.stringify(normalizedUser));
         }
         
         return loginResponse;
@@ -217,12 +232,15 @@ export class AuthService {
     this.router.navigate(['/']);
   }
 
-  private setUser(user: User): void {
-    // Use the role from the backend exactly as it is
-    const actualRole = user.role;
+  private setUser(user: User | any): void {
+    // Normalize user object to ensure consistent format
+    const normalizedUser = this.normalizeUser(user);
     
-    this.currentUserSubject.next(user);
-    this.currentUser.set(user);
+    // Use the role from the backend exactly as it is
+    const actualRole = normalizedUser.role;
+    
+    this.currentUserSubject.next(normalizedUser);
+    this.currentUser.set(normalizedUser);
     this.isAuthenticated.set(true);
     this.isAdmin.set(actualRole === 'admin');
   }
