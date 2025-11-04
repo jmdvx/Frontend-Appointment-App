@@ -139,36 +139,49 @@ export class AuthService {
       return of(mockResponse);
     }
     
-    // First, get all users and find matching email
-    return this.http.get<any[]>(`${environment.apiUrl}/users`).pipe(
-      map(users => {
-        // Make email comparison case-insensitive
-        const user = users.find(u => u.email.toLowerCase() === credentials.email.toLowerCase());
+    // Use proper login endpoint that validates BOTH email and password
+    return this.http.post<any>(`${environment.authApiUrl}/login`, credentials).pipe(
+      map(response => {
+        // Handle different backend response formats
+        let loginResponse: LoginResponse;
         
-        if (!user) {
-          throw new Error('User not found');
+        if (response.user && response.token) {
+          // Backend returns format: { user: {...}, token: "..." }
+          loginResponse = {
+            user: {
+              id: response.user._id || response.user.id,
+              email: response.user.email,
+              name: response.user.name,
+              phone: response.user.phonenumber || response.user.phone,
+              role: response.user.role || 'user'
+            },
+            token: response.token
+          };
+        } else if (response.data) {
+          // Backend might return format: { data: { user: {...}, token: "..." } }
+          loginResponse = {
+            user: {
+              id: response.data.user._id || response.data.user.id,
+              email: response.data.user.email,
+              name: response.data.user.name,
+              phone: response.data.user.phonenumber || response.data.user.phone,
+              role: response.data.user.role || 'user'
+            },
+            token: response.data.token || response.token
+          };
+        } else {
+          // Fallback: assume response is already in correct format
+          loginResponse = response;
         }
         
-        // Create response in expected format
-        const response: LoginResponse = {
-          user: {
-            id: user._id || user.id,
-            email: user.email,
-            name: user.name,
-            phone: user.phonenumber || user.phone, // Use phonenumber field (or fallback to phone)
-            role: user.role || 'user' // Use actual role from backend
-          },
-          token: `token_${user._id || user.id}_${Date.now()}`
-        };
-        
-        // Save user data and token
-        this.setUser(response.user);
+        // Save user data and token on successful login
+        this.setUser(loginResponse.user);
         if (isPlatformBrowser(this.platformId)) {
-          localStorage.setItem('auth_token', response.token);
-          localStorage.setItem('current_user', JSON.stringify(response.user));
+          localStorage.setItem('auth_token', loginResponse.token);
+          localStorage.setItem('current_user', JSON.stringify(loginResponse.user));
         }
         
-        return response;
+        return loginResponse;
       }),
       catchError((error: HttpErrorResponse) => {
         console.error('Login error:', error);
@@ -177,13 +190,19 @@ export class AuthService {
         if (error.status === 0 || error.message.includes('CORS') || error.message.includes('Access-Control-Allow-Origin')) {
           console.error('CORS Error: The backend server needs to be configured to allow requests from your frontend domain.');
           console.error('Frontend domain:', window.location.origin);
-          console.error('Backend URL:', environment.apiUrl);
+          console.error('Backend URL:', environment.authApiUrl);
           throw new Error('CORS Error: Unable to connect to the server. Please check if the backend is configured to allow requests from this domain.');
         }
         
-        // Handle other HTTP errors
-        if (error.status >= 400 && error.status < 500) {
-          throw new Error('Invalid credentials or user not found');
+        // Handle authentication errors
+        if (error.status === 401) {
+          throw new Error('Invalid email or password. Please try again.');
+        } else if (error.status === 404) {
+          throw new Error('User not found. Please check your email address.');
+        } else if (error.status === 403) {
+          throw new Error('Account is disabled. Please contact support.');
+        } else if (error.status >= 400 && error.status < 500) {
+          throw new Error(error.error?.message || 'Invalid credentials. Please try again.');
         } else if (error.status >= 500) {
           throw new Error('Server error. Please try again later.');
         }
