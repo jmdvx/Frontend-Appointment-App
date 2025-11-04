@@ -58,7 +58,7 @@ export class AuthService {
   public currentUser = signal<User | null>(null);
 
   // Offline mode flag - set to true to enable offline testing
-  private readonly OFFLINE_MODE = true;
+  private readonly OFFLINE_MODE = false;
 
   constructor() {
     // Check for stored token on service init

@@ -18,7 +18,7 @@ export class RegisterComponent implements OnInit {
   private readonly http = inject(HttpClient);
 
   // Offline mode flag - set to true to enable offline testing
-  private readonly OFFLINE_MODE = true;
+  private readonly OFFLINE_MODE = false;
 
   registerForm = this.fb.group({
     name: ['', [Validators.required, Validators.minLength(2)]],

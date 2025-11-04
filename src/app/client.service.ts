@@ -117,7 +117,7 @@ export class ClientService {
 
   // Delete client
   deleteClient(id: string): Observable<{ message: string }> {
-    const OFFLINE_MODE = true; // Temporary offline mode for testing
+    const OFFLINE_MODE = false; // Disabled to connect to backend database
     
     if (OFFLINE_MODE) {
       // Offline mode: Delete from localStorage
@@ -148,7 +148,7 @@ export class ClientService {
 
   // Ban a client
   banClient(clientId: string, cancelAppointments: boolean = true): Observable<{ message: string; isBanned: boolean }> {
-    const OFFLINE_MODE = true; // Temporary offline mode for testing
+    const OFFLINE_MODE = false; // Disabled to connect to backend database
     
     if (OFFLINE_MODE) {
       // Offline mode: Toggle ban status locally
@@ -185,7 +185,7 @@ export class ClientService {
 
   // Unban a client
   unbanClient(clientId: string): Observable<{ message: string; isBanned: boolean }> {
-    const OFFLINE_MODE = true; // Temporary offline mode for testing
+    const OFFLINE_MODE = false; // Disabled to connect to backend database
     
     if (OFFLINE_MODE) {
       // Offline mode: Toggle ban status locally

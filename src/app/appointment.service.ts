@@ -27,7 +27,7 @@ export class AppointmentService {
   private readonly baseUrl = `${environment.apiUrl}/appointments`;
   
   // Offline mode flag - set to true to enable offline testing
-  private readonly OFFLINE_MODE = true;
+  private readonly OFFLINE_MODE = false;
 
   private handleError(error: HttpErrorResponse): Observable<never> {
     console.error('Appointment service error:', error);
