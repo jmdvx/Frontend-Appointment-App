@@ -763,7 +763,7 @@ export class BookAppointmentComponent implements OnInit {
     this.appointmentService.createAppointment(appointmentData).subscribe({
       next: (response) => {
         console.log('✅ Appointment created successfully:', response);
-        this.successMessage = 'Appointment booked successfully! Redirecting to your appointments...';
+        this.successMessage = 'Appointment booked successfully! Redirecting...';
         
         // Clear form and selections
         this.form.reset();
@@ -771,11 +771,11 @@ export class BookAppointmentComponent implements OnInit {
         this.selectedTime = null;
         localStorage.removeItem('selectedService');
         
-        // Redirect to user appointments after 2 seconds
+        // Redirect immediately (show message briefly, then redirect)
         setTimeout(() => {
           console.log('Redirecting to My Appointments page...');
           this.router.navigate(['/view-appointments-user']);
-        }, 2000);
+        }, 500); // Reduced from 2000ms to 500ms for faster redirect
         
         this.submitting = false;
       },
@@ -882,10 +882,10 @@ export class BookAppointmentComponent implements OnInit {
         this.selectedTime = null;
         localStorage.removeItem('selectedService');
         
-        // Redirect to user appointments after 2 seconds
+        // Redirect to user appointments quickly (500ms for brief success message)
         setTimeout(() => {
           this.router.navigate(['/view-appointments-user']);
-        }, 2000);
+        }, 500);
         
         this.submitting = false;
       },
